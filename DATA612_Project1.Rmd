@@ -1,0 +1,291 @@
+---
+title: "DATA 612 Project 1"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyr)
+```
+
+#Project 1
+
+#####Briefly describe the recommender system that you’re going to build out from a business perspective, e.g. “This system recommends data science books to readers.”
+
+This system recommends movies to viewers
+
+
+
+
+
+#####Find a dataset, or build out your own toy dataset. As a minimum requirement for complexity, please include numeric ratings for at least five users, across at least five items, with some missing data.
+
+I pulled a dataset from grouplens, and picked out a small subset at random for 7 movies. The subset is located here: https://github.com/hvasquez81/DATA612/blob/master/ml-latest-small/Ratings_subset.csv
+
+
+
+
+
+#####Load your data into (for example) an R or pandas dataframe, a Python dictionary or list of lists, (or another data structure of your choosing). From there, create a user-item matrix.
+
+```{r}
+ratings_subset <- as.data.frame(read.csv('https://raw.githubusercontent.com/hvasquez81/DATA612/master/ml-latest-small/Ratings_subset.csv', stringsAsFactors = FALSE))
+ratings_subset
+```
+
+
+
+
+
+#####Break your ratings into separate training and test datasets.
+
+```{r}
+set.seed(100)
+indexes <- sample(seq_len(nrow(ratings_subset)), size = floor(.70*nrow(ratings_subset)))
+train <- ratings_subset[indexes, ]
+test <- ratings_subset[-indexes, ]
+
+train
+test
+```
+
+
+
+
+
+#####Using your training data, calculate the raw average (mean) rating for every user-item combination.
+
+```{r}
+raw_average <- (sum(train$Toy.Story..1995., na.rm = TRUE) + 
+                  sum(train$Jumanji..1995., na.rm = TRUE) + 
+                  sum(train$Heat..1995., na.rm = TRUE) +
+                  sum(train$GoldenEye..1995., na.rm = TRUE) +
+                  sum(train$American.President..The..1995., na.rm = TRUE) +
+                  sum(train$Casino..1995., na.rm = TRUE) +
+                  sum(train$Ace.Ventura..When.Nature.Calls..1995., na.rm = TRUE)
+) / (sum(!is.na(train$Toy.Story..1995.)) + 
+       sum(!is.na(train$Jumanji..1995.)) + 
+       sum(!is.na(train$Heat..1995.)) + 
+       sum(!is.na(train$GoldenEye..1995.)) + 
+       sum(!is.na(train$American.President..The..1995.)) + 
+       sum(!is.na(train$Casino..1995.)) + 
+       sum(!is.na(train$Ace.Ventura..When.Nature.Calls..1995.)))
+raw_average
+```
+
+
+
+
+
+#####Calculate the RMSE for raw average for both your training data and your test data.
+
+```{r}
+#For training data
+sum = 0
+count = 0
+for (i in 1:nrow(train)) {
+  
+  for (j in 2:ncol(train)) {
+    
+    if (!is.na(train[i,j])) {
+      count = count +1
+      sum = sum + (train[i,j]-raw_average)^2
+      
+    }
+    
+  }
+  
+}
+
+train_RMSE <- round(sqrt(sum/count),3)
+
+#For test data
+sum = 0
+count = 0
+for (i in 1:nrow(test)) {
+  
+  for (j in 2:ncol(test)) {
+    
+    if (!is.na(test[i,j])) {
+      count = count +1
+      sum = sum + (test[i,j]-raw_average)^2
+      
+    }
+    
+  }
+  
+}
+
+test_RMSE <- round(sqrt(sum/count),3)
+
+print(paste0("Training RMSE: ", train_RMSE,". Test RMSE: ", test_RMSE))
+```
+
+
+
+
+
+#####Using your training data, calculate the bias for each user and each item.
+
+```{r}
+#Bias for users
+user_bias = data.frame(userId = train[,1], bias = 0)
+
+for (i in 1:nrow(user_bias)) {
+  
+  user_bias[i,2] = sum(train[i,2:ncol(train)], na.rm = TRUE)/sum(!is.na(train[i,2:ncol(train)])) - raw_average
+}
+
+user_bias
+
+#Bias for movies
+movie_bias <- data.frame(movie = as.data.frame(colnames(train)), bias = 0)
+movie_bias <- movie_bias[-1,]
+colnames(movie_bias) <- c('movie','bias')
+
+for (i in 1:nrow(movie_bias)) {
+  
+  movie_bias[i,2] = sum(train[1:nrow(train),i+1], na.rm = TRUE)/sum(!is.na(train[1:nrow(train),i+1])) - raw_average
+}
+
+movie_bias
+```
+
+
+
+
+
+######From the raw average, and the appropriate user and item biases, calculate the baseline predictors for every user-item combination.
+
+```{r}
+predictors_train <- train
+
+for (i in 1:nrow(predictors_train)) {
+  
+  for (j in 2:ncol(predictors_train)) {
+    
+    predictors_train[i,j] = round(raw_average + user_bias[i,2] + movie_bias[j-1,2],1)
+    
+  }
+}
+
+#clip values at 5 and 1 for those greate than 5 or less than 1
+for (i in 1:nrow(predictors_train)) {
+  
+  for (j in 2:ncol(predictors_train)) {
+    
+    if(predictors_train[i,j] > 5) 
+      predictors_train[i,j] = 5
+    if(predictors_train[i,j] <1)
+      predictors_train[i,j] = 1
+    
+  }
+}
+
+
+predictors_train
+```
+
+
+
+
+
+#####Calculate the RMSE for the baseline predictors for both your training data and your test data.
+
+```{r}
+#train
+
+sum = 0
+count = 0
+for (i in 1:nrow(train)) {
+  
+  for (j in 2:ncol(train)) {
+    
+    if (!is.na(train[i,j])) {
+      count = count +1
+      sum = sum + (train[i,j]-predictors_train[i,j])^2
+      
+    }
+    
+  }
+  
+}
+
+train_RMSE_baseline <- round(sqrt(sum/count),3)
+
+
+#calculate user bias for test set
+user_bias_test = data.frame(userId = test[,1], bias = 0)
+
+for (i in 1:nrow(user_bias_test)) {
+  
+  user_bias_test[i,2] = sum(test[i,2:ncol(test)], na.rm = TRUE)/sum(!is.na(test[i,2:ncol(test)])) - raw_average
+}
+
+#user_bias_test
+
+#test predictors
+predictors_test <- test
+
+for (i in 1:nrow(predictors_test)) {
+  
+  for (j in 2:ncol(predictors_test)) {
+    
+    predictors_test[i,j] = round(raw_average + user_bias_test[i,2] + movie_bias[j-1,2],1)
+    
+  }
+}
+
+#clip values at 5 and 1 for those greate than 5 or less than 1
+for (i in 1:nrow(predictors_test)) {
+  
+  for (j in 2:ncol(predictors_test)) {
+    
+    if(predictors_test[i,j] > 5) 
+      predictors_test[i,j] = 5
+    if(predictors_test[i,j] <1)
+      predictors_test[i,j] = 1
+    
+  }
+}
+
+
+
+#test
+
+sum = 0
+count = 0
+for (i in 1:nrow(test)) {
+  
+  for (j in 2:ncol(test)) {
+    
+    if (!is.na(test[i,j])) {
+      count = count +1
+      sum = sum + (test[i,j]-predictors_test[i,j])^2
+      
+    }
+    
+  }
+  
+}
+
+test_RMSE_baseline <- round(sqrt(sum/count),3)
+
+print(paste0("The RMSE of baseline predictors for training data: ", train_RMSE_baseline,". The RMSE of baseline predictors for test data: ", test_RMSE_baseline))
+
+```
+
+
+
+
+
+#####Summarize your results.
+Both RMSE improved with the addition of the movie bias and user bias compared to just the raw average. The improvement was roughly `r round(100*(1-(0.856/0.871)),2)`%, which isn't a huge increase and probably due to the small subset with the movies chosen. The results could possibly be improved by adding a larger variety of movies to see if user bias and movie bias change.
+
+
+
+
+
+
+
