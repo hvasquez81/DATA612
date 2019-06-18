@@ -1,0 +1,212 @@
+---
+title: "Data 612 Project 2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+
+```{r, include = FALSE}
+library(recommenderlab)
+library(ggplot2)
+library(dplyr)
+```
+
+
+
+
+
+#####Similarity Matrix - Users
+```{r}
+#load MovieLense dataset
+data("MovieLense")
+sim_users <- similarity(MovieLense[1:5, ], 
+                        method = 'cosine', 
+                        which = 'users')
+
+image(as.matrix(sim_users), 
+      main = 'User Similarity')
+```
+
+
+
+
+
+#####Similarity Matrix - Items
+```{r}
+sim_items <- similarity(MovieLense[,1:5 ], 
+                        method = 'cosine', 
+                        which = 'items')
+
+image(as.matrix(sim_items), 
+      main = 'Item Similarity')
+```
+
+
+
+
+
+#####Distribution of Ratings
+```{r}
+ratings <- as.vector(MovieLense@data)
+table_ratings <- table(ratings)
+#remove 0s since these are NAs
+ratings <- ratings[ratings != 0]
+ratings <- factor(ratings)
+qplot(ratings) + ggtitle("Dist. of Ratings")
+```
+
+
+
+
+
+#####Movie Views
+```{r}
+movie_views <- colCounts(MovieLense)
+
+table_views <- data.frame(movie = names(movie_views),
+                          views = movie_views
+                          )
+table_views <- table_views[order(table_views$views, decreasing = FALSE), ]
+
+ggplot(table_views[1:25, ], aes(x = movie, y = views)) + ggtitle("Number of Views for the 25 Least Popular Movies") + geom_bar(stat = 'identity') + theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+  
+```
+
+
+
+
+
+#####Average Ratings
+```{r}
+avg_ratings <- colMeans(MovieLense)
+qplot(avg_ratings) + stat_bin(binwidth = 0.1) + ggtitle("Dist. of Average Movie Rating")
+
+#for relevant movies, choose movies with more than 100 views
+relevant_avg_ratings <- avg_ratings[movie_views > 100]
+
+qplot(relevant_avg_ratings) + stat_bin(binwidth = 0.1) + ggtitle("Dist. of Relevant Average Movie Rating")
+```
+
+
+
+
+
+#####Data Preparation
+```{r}
+image(MovieLense)
+```
+
+
+
+
+
+Looking at this, there is a lot of white space, indicating a lot of sparse data. This is an issue because it can cause bias from certain users who only rate of few movies, or certain movies that have only been viewed a few times. In order to build a good recommender system, we need to select relevant data. For the purpose of the project, we will sort users who have rated 50 movies, and movies that have been seen 100 times (as done in the text book).
+
+```{r}
+#560 users and 332 movies
+working_data <- MovieLense[rowCounts(MovieLense) > 50, colCounts(MovieLense) > 100]
+
+#Normalize the data so that average rating of each user is 0
+working_data <- normalize(working_data)
+```
+
+
+
+
+
+#####Split Data Into Training and Test Sets
+```{r}
+#split training and test data (70%)
+set.seed(100)
+train_index <- sample(x = c(T,F), size = nrow(working_data), replace = T, prob = c(0.7,0.3))
+
+#set train and test sets  
+train <- MovieLense[train_index,]
+test <- MovieLense[!train_index,]
+```
+
+
+
+
+
+#####IBCF
+```{r}
+#k = 15
+#create IBCF recommender
+rec_IBCF_15 <- Recommender(data = train, method = 'IBCF', parameter = list(k = 15))
+#predict
+predict_IBCF_15 <- predict(object = rec_IBCF_15, newdata = test, n=5)
+#recommendations for the first 3 people in test set
+predict_IBCF_15 %>% as("list") %>% head(3)
+```
+
+
+
+
+
+#####UBCF 
+```{r}
+#create UBCF recommender
+rec_UBCF <- Recommender(data = train, method = 'UBCF')
+#predict
+predict_UBCF <- predict(rec_UBCF, newdata = test,n=5) 
+
+#recommendations for the first 3 people in test set
+predict_UBCF %>% as("list") %>% head(3)
+```
+
+
+
+
+
+
+
+
+
+
+
+#####Summary
+```{r}
+#IBCF
+predictions_IBCF_15 <- predict(object = rec_IBCF_15, newdata = test, n = 5)
+predictions_IBCF_15_matrix <- sapply(predictions_IBCF_15@items, function(x) {colnames(working_data)[x]})
+totals_IBCF <- factor(table(predictions_IBCF_15_matrix))
+qplot(totals_IBCF) + ggtitle("Total Times Recommended - IBCF Model")
+#Top 10 recommended movies for IBCF model
+sort(totals_IBCF, decreasing = TRUE) %>% head(10)
+
+#UBCF
+predictions_UBCF <- predict(object = rec_UBCF, newdata = test, n = 5)
+predictions_UBCF_matrix <- sapply(predictions_UBCF@items, function(x) {colnames(working_data)[x]})
+totals_UBCF <- factor(table(predictions_UBCF_matrix))
+qplot(totals_UBCF) + ggtitle("Total Times Recommended - UBCF Model")
+#Top 10 movies for UBCF model
+sort(totals_UBCF, decreasing = TRUE) %>% head(10)
+```
+
+
+
+
+
+The UBCF can usually be more accurate than IBCF models however, due to the UBCF model needing access to the initial data it can be time and power consuming when working with big data. The advantage of using the IBCF model is that once it's built, it doesn't need access to the initial data. It's scalable, and efficient when working with big data. Both models will not work with new users that have not rated any movies, except for the IBCF in the case that the user's purchases are known. 
+
+In this project, I think I would choose the UBCF model only because the dataset isn't that large. If a larger ratings matrix from MovieLense were to be used instead of this small one, then I would switch my preference over to using the IBCF.
+
+
+
+
+
+
+
+
+
+
+
+
+
