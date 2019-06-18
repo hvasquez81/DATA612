@@ -1,0 +1,26 @@
+---
+title: "DATA 612 Research Discussion Assignment 2"
+author: "Henry Vasquez"
+date: "6/17/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+For this discussion item, please watch the following talk and summarize what you found to be the most important or interesting points. The first half will cover some of the mathematical techniques covered in this unit's reading and the second half some of the data management challenges in an industrial-scale recommendation system.
+
+*link:* https://www.youtube.com/watch?v=3LBgiFch4_g
+
+
+
+#####Summary
+Scalability is one of the most important factors when building a recommender system. Certain systems are going to work efficiently with small datasets, however for companies like Spotify where their catalog consists of 40 million songs a recommender system that is scalable is crucial. Christopher Johnson explains many of the struggles Spotify faced early on when developing their recommender system and how cache, and reducing the shuffling around durning matrix factorization are important when using big datasets. In Spotify's case, when running their methods of ALS for 4 million users and 500k artists, some of their approaches took 10 hours while their fastest took 1.5 hours. Larger datasets also resulted in failed executors when using more tha 20% of their total datset, and often times the job never fully recovered.
+
+Personally, I felt that the trials and improvements made were the most important parts talked about. It shows development in a recommender system that goes from innefficient and unscallable to more efficient and better scalable. Improvements like caching the ratings, and avoiding shuffling as well as weighing the cons in doing so show us sacfrices me make when building recommender systems to improve run times when working with big data. The code provided during the presentation was very helpful to follow along in how a matrix factorization code is written as well as the ALS code and the explanation of the MLLib package.
+
+
+
+
+
