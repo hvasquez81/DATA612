@@ -1,0 +1,38 @@
+---
+title: "Data 612 Project 4"
+author: "Henry Vasquez"
+date: "June 30, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(recommenderlab)
+library(dplyr)
+library(ggplot2)
+data(Jester5k)
+```
+
+
+# Accuracy and Beyond
+The goal of this assignment is give you practice working with accuracy and other recommender system
+metrics.
+
+In this assignment you’re asked to do at least one or (if you like) both of the following:
+
+* Work in a small group, and/or
+* Choose a different dataset to work with from your previous projects.
+
+Deliverables
+
+1. As in your previous assignments, compare the accuracy of at least two recommender system algorithms against your offline data.
+
+2. Implement support for at least one business or user experience goal such as increased serendipity, novelty, or diversity.
+
+3. Compare and report on any change in accuracy before and after you’ve made the change in #2.
+
+4. As part of your textual conclusion, discuss one or more additional experiments that could be performed and/or metrics that could be evaluated only if online evaluation was possible. Also, briefly propose how you would design a reasonable online evaluation environment.
+
+You’ll find some of the material discussed in this week’s reading to be helpful in completing this project. You may also want to look at papers online, or search for “recsys” on youtube or slideshare.net.
+
+
