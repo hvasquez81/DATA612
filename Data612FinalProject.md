@@ -1,4 +1,4 @@
-Data612FinalProject
+Data 612 Final Project
 ================
 
 ### Introduction
